@@ -4,8 +4,8 @@ pragma solidity ^0.8.23;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
-import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+// import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+// import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -31,10 +31,9 @@ interface ICreatorToken {
  * @title BaseERC721
  * @dev Base contract for creating and managing ERC721 tokens with additional features such as pausing, access control, and token locking.
  */
-contract BaseERC721 is
+contract TCG_World_Vehicles_Updated is
     Initializable,
-    ERC721URIStorageUpgradeable,
-    ERC721EnumerableUpgradeable,
+    ERC721Upgradeable,
     PausableUpgradeable,
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
@@ -43,6 +42,21 @@ contract BaseERC721 is
     ICreatorToken
 {
     using Strings for uint256;
+
+    /// @custom:storage-location erc7201:openzeppelin.storage.ERC721Enumerable
+    struct ERC721EnumerableStorage {
+        mapping(address owner => mapping(uint256 index => uint256)) _ownedTokens;
+        mapping(uint256 tokenId => uint256) _ownedTokensIndex;
+
+        uint256[] _allTokens;
+        mapping(uint256 tokenId => uint256) _allTokensIndex;
+    }
+
+    /// @custom:storage-location erc7201:openzeppelin.storage.ERC721URIStorage
+    struct ERC721URIStorageStorage {
+        // Optional mapping for token URIs
+        mapping(uint256 tokenId => string) _tokenURIs;
+    }
 
     // Role constants for access control
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -107,8 +121,6 @@ contract BaseERC721 is
         __ERC721_init(_name, _symbol);
         __Pausable_init();
         __ReentrancyGuard_init();
-        __ERC721Enumerable_init();
-        __ERC721URIStorage_init();
         __AccessControl_init();
         __ERC2981_init();
 
@@ -482,7 +494,7 @@ contract BaseERC721 is
         public
         view
         virtual
-        override(ERC721URIStorageUpgradeable, ERC721Upgradeable)
+        override(ERC721Upgradeable)
         returns (string memory)
     {
         string memory baseURI = _baseURI();
@@ -550,10 +562,9 @@ contract BaseERC721 is
         view
         virtual
         override(
-            ERC721URIStorageUpgradeable,
             AccessControlUpgradeable,
-            ERC721EnumerableUpgradeable,
-            ERC2981Upgradeable
+            ERC2981Upgradeable,
+            ERC721Upgradeable
         )
         returns (bool)
     {
@@ -600,7 +611,7 @@ contract BaseERC721 is
     )
         internal
         virtual
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
+        override(ERC721Upgradeable)
         whenNotPaused
         returns (address)
     {
@@ -633,7 +644,7 @@ contract BaseERC721 is
     )
         internal
         virtual
-        override(ERC721EnumerableUpgradeable, ERC721Upgradeable)
+        override(ERC721Upgradeable)
     {
         super._increaseBalance(account, amount);
     }
@@ -647,7 +658,7 @@ contract BaseERC721 is
     function isApprovedForAll(
         address owner,
         address operator
-    ) public view override(ERC721Upgradeable, IERC721) returns (bool) {
+    ) public view override(ERC721Upgradeable) returns (bool) {
         // Whitelist Marketplace contract for easy trading.
         if (_whitelist[operator]) {
             return true;
@@ -715,5 +726,9 @@ contract BaseERC721 is
             revert ErrorSameValue();
         }
         lockDuration = _lockDuration;
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return tokenIdCounter;
     }
 }

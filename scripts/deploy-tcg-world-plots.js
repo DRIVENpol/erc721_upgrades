@@ -1,46 +1,53 @@
 const { ethers, upgrades } = require("hardhat");
+const { LedgerSigner } = require("@ethersproject/hardware-wallets");
+require("dotenv").config();
 
-async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
-
-  // Deploy TCG World Plots
-  const TCGWorldPlots = await ethers.getContractFactory("TCG_World_Plots");
-  console.log("Deploying TCG World Plots...");
+async function deployTCGWorldPlots(name, symbol) {
+  console.log("🔍 Checking Ledger connection...");
   
-  const tcgWorldPlots = await upgrades.deployProxy(TCGWorldPlots, [
-    deployer.address, // manager
-    deployer.address, // pauser
-    deployer.address, // upgrader
-    deployer.address, // royalty receiver
-    ethers.ZeroAddress, // initial validator (zero address for now)
-    "TCG World Plots", // name
-    "TCGWP", // symbol
-    0 // lock duration (0 for no lock)
-  ], {
-    initializer: 'initialize',
-    kind: 'transparent'
+  const provider = ethers.provider;
+  const deployer = new LedgerSigner(provider, "m/44'/60'/0'/0/0");
+  
+  console.log("👛 Ledger address:", await deployer.getAddress());
+  console.log(`👷 Deploying TCGPlot with: ${await deployer.getAddress()}`);
+
+  const ContractFactory = await ethers.getContractFactory("TCGPlot", deployer);
+
+  // You can adjust these as needed
+  const lockDuration = 0; // No lock
+  const royaltyReceiver = await deployer.getAddress(); // Or set to a specific address
+  const validator = ethers.ZeroAddress; // Or set to a specific validator address
+
+  // Initialize arguments in the correct order as defined in BaseERC721.initialize
+  const args = [
+    await deployer.getAddress(),  // _manager
+    await deployer.getAddress(),  // _pauser
+    await deployer.getAddress(),  // _upgrader
+    royaltyReceiver,   // _royaltyReceiver
+    validator,         // _initialValidator
+    name,             // _name
+    symbol,           // _symbol
+    lockDuration      // _lockDuration
+  ];
+
+  console.log("Deployment arguments:", args);
+
+  const proxy = await upgrades.deployProxy(ContractFactory, args, {
+    initializer: "initialize",
+    kind: "transparent",
   });
 
-  await tcgWorldPlots.waitForDeployment();
-  const tcgWorldPlotsAddress = await tcgWorldPlots.getAddress();
-  
-  console.log("TCG World Plots deployed to:", tcgWorldPlotsAddress);
-  console.log("Transaction hash:", tcgWorldPlots.deploymentTransaction().hash);
+  await proxy.waitForDeployment();
+  const address = await proxy.getAddress();
 
-  // Verify the deployment
-  console.log("\nVerifying deployment...");
-  console.log("Contract address:", tcgWorldPlotsAddress);
-  console.log("Network:", network.name);
-  console.log("Deployer address:", deployer.address);
+  console.log(`✅ TCGPlot (${name}) deployed to: ${address}`);
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  }); 
+async function main() {
+  await deployTCGWorldPlots("TCG World Plots", "TCGWP");
+}
 
-  // npx hardhat run scripts/deploy-tcg-world-plots.js --network mainnet
+main().catch((err) => {
+  console.error("❌ Deployment failed:", err);
+  process.exit(1);
+});

@@ -7,13 +7,13 @@ async function main() {
   console.log("Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
 
   // The address of the proxy contract
-  const proxyAddress = process.env.PROXY_ADDRESS;
+  const proxyAddress = process.env.PROXY_ADDRESS_VEHICLES;
   if (!proxyAddress) {
     throw new Error("PROXY_ADDRESS environment variable is not set");
   }
 
   // Deploy the new implementation
-  const TCGWorldPlotsUpdated = await ethers.getContractFactory("TCG_World_Plots_Updated");
+  const TCGWorldPlotsUpdated = await ethers.getContractFactory("TCG_World_Vehicles_Updated");
   console.log("Upgrading TCG World Plots at:", proxyAddress);
 
   const upgraded = await upgrades.upgradeProxy(proxyAddress, TCGWorldPlotsUpdated, {
@@ -43,4 +43,4 @@ main()
     process.exit(1);
   }); 
 
-// npx hardhat run scripts/upgrade-tcg-world-plots.js --network mainnet
+// npx hardhat run scripts/upgradeVehicles.js --network mainnet

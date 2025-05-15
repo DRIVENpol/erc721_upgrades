@@ -727,4 +727,8 @@ contract TCG_World_Plots_Updated is
         }
         lockDuration = _lockDuration;
     }
+
+    function totalSupply() public view returns (uint256) {
+        return tokenIdCounter;
+    }
 }
